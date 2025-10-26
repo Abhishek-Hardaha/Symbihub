@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block title %}Polls - SymbiHub{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Community Polls</h1>
+                <p class="text-gray-600 dark:text-gray-300 mt-2">Share your opinion and help shape our community</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="ph ph-plus mr-2"></i>
+                    Create Poll
+                </button>
+                <i class="ph ph-chart-bar text-3xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Polls -->
+    <div class="space-y-6">
+        {% if polls %}
+            {% for poll in polls %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">{{ poll.question }}</h3>
+                    <div class="flex items-center space-x-2">
+                        {% if poll.status == 'active' %}
+                        <span class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm font-medium">
+                            Active
+                        </span>
+                        {% else %}
+                        <span class="bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-3 py-1 rounded-full text-sm font-medium">
+                            Closed
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    {% for option, votes in poll.options|zip(poll.votes) %}
+                    <div class="poll-option">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium text-gray-900 dark:text-white">{{ option }}</span>
+                            <span class="text-sm text-gray-600 dark:text-gray-300">{{ votes }} votes</span>
+                        </div>
+                        
+                        <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3">
+                            {% set total_votes = poll.votes|sum %}
+                            {% if total_votes > 0 %}
+                            <div class="bg-blue-600 h-3 rounded-full transition-all duration-500" 
+                                 style="width: {{ (votes / total_votes) * 100 }}%"></div>
+                            {% else %}
+                            <div class="bg-blue-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if poll.status == 'active' %}
+                        <form action="/vote_poll/{{ poll.id }}" method="POST" class="mt-2">
+                            <input type="hidden" name="option" value="{{ loop.index0 }}">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                Vote for {{ option }}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                        <i class="ph ph-users mr-1"></i>
+                        {{ poll.votes|sum }} total votes
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                        <i class="ph ph-clock mr-1"></i>
+                        Ends in 3 days
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-12 text-center">
+                <i class="ph ph-chart-bar text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No active polls</h3>
+                <p class="text-gray-600 dark:text-gray-300">Check back later for new community polls!</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Create Poll Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Create New Poll</h2>
+        
+        <form action="/create_poll" method="POST" class="space-y-6">
+            <div>
+                <label for="question" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Poll Question *
+                </label>
+                <input type="text" id="question" name="question" required
+                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                       placeholder="What would you like to ask the community?">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Poll Options *
+                </label>
+                <div class="space-y-3">
+                    <input type="text" name="option1" required
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="Option 1">
+                    <input type="text" name="option2" required
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="Option 2">
+                    <input type="text" name="option3"
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="Option 3 (optional)">
+                    <input type="text" name="option4"
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="Option 4 (optional)">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="duration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Poll Duration
+                    </label>
+                    <select id="duration" name="duration"
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option value="1">1 Day</option>
+                        <option value="3" selected>3 Days</option>
+                        <option value="7">1 Week</option>
+                        <option value="14">2 Weeks</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Category
+                    </label>
+                    <select id="category" name="category"
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option value="general">General</option>
+                        <option value="events">Events</option>
+                        <option value="clubs">Clubs</option>
+                        <option value="feedback">Feedback</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+                    <i class="ph ph-plus mr-2"></i>
+                    Create Poll
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Poll Statistics -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Poll Statistics</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="text-center">
+                <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-full w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                    <i class="ph ph-chart-bar text-2xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">12</h3>
+                <p class="text-gray-600 dark:text-gray-300">Total Polls</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="bg-green-100 dark:bg-green-900 p-3 rounded-full w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                    <i class="ph ph-users text-2xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">245</h3>
+                <p class="text-gray-600 dark:text-gray-300">Total Votes</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="bg-purple-100 dark:bg-purple-900 p-3 rounded-full w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                    <i class="ph ph-trophy text-2xl text-purple-600 dark:text-purple-400"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">8</h3>
+                <p class="text-gray-600 dark:text-gray-300">Active Polls</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

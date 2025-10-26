@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - SymbiHub{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Welcome Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-lg p-8 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold mb-2">Welcome to SymbiHub!</h1>
+                <p class="text-blue-100 text-lg">Discover amazing events happening on campus</p>
+            </div>
+            <div class="hidden md:block">
+                <i class="ph ph-graduation-cap text-6xl text-blue-200"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div class="flex items-center">
+                <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                    <i class="ph ph-calendar text-2xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Events</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ events|length }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div class="flex items-center">
+                <div class="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
+                    <i class="ph ph-users text-2xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Active Clubs</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">8</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div class="flex items-center">
+                <div class="bg-purple-100 dark:bg-purple-900 p-3 rounded-lg">
+                    <i class="ph ph-chat-circle text-2xl text-purple-600 dark:text-purple-400"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Community Posts</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">12</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div class="flex items-center">
+                <div class="bg-orange-100 dark:bg-orange-900 p-3 rounded-lg">
+                    <i class="ph ph-star text-2xl text-orange-600 dark:text-orange-400"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Your Events</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">3</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Events Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Upcoming Events</h2>
+            <div class="flex items-center space-x-2">
+                <i class="ph ph-calendar text-blue-600 dark:text-blue-400"></i>
+                <span class="text-gray-600 dark:text-gray-300">{{ events|length }} events</span>
+            </div>
+        </div>
+        
+        {% if events %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for event in events %}
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    {% if event.img %}
+                    <div class="aspect-w-16 aspect-h-9">
+                        <img src="{{ event.img }}" alt="{{ event.title }}" 
+                             class="w-full h-48 object-cover">
+                    </div>
+                    {% else %}
+                    <div class="w-full h-48 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <i class="ph ph-calendar text-6xl text-white"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-medium">
+                                {{ event.cat }}
+                            </span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                                <i class="ph ph-calendar-blank mr-1"></i>
+                                {{ event.date }}
+                            </span>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ event.title }}</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">{{ event.tagline }}</p>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                <i class="ph ph-buildings mr-2"></i>
+                                {{ event.org }}
+                            </div>
+                            <a href="/event/{{ event.id }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                <i class="ph ph-plus mr-1"></i>
+                                Join Event
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <i class="ph ph-calendar-x text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No events available</h3>
+                <p class="text-gray-600 dark:text-gray-300">Check back later for new events!</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <a href="/feed" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <div class="flex items-center mb-4">
+                <div class="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
+                    <i class="ph ph-chat-circle text-2xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white ml-4">Community Feed</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300">Connect with fellow students and share experiences</p>
+        </a>
+        
+        <a href="/clubs" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <div class="flex items-center mb-4">
+                <div class="bg-purple-100 dark:bg-purple-900 p-3 rounded-lg">
+                    <i class="ph ph-users text-2xl text-purple-600 dark:text-purple-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white ml-4">Clubs & Societies</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300">Explore campus clubs and join communities</p>
+        </a>
+        
+    <a href="{{ url_for('profile') }}" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <div class="flex items-center mb-4">
+                <div class="bg-orange-100 dark:bg-orange-900 p-3 rounded-lg">
+                    <i class="ph ph-user text-2xl text-orange-600 dark:text-orange-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white ml-4">Your Profile</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300">Manage your profile and preferences</p>
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block title %}Organizer Dashboard - SymbiHub{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Organizer Dashboard</h1>
+                <p class="text-gray-600 dark:text-gray-300 mt-2">Manage your events and track engagement</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <i class="ph ph-calendar-plus text-3xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <button class="bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
+            <div class="flex items-center justify-center mb-3">
+                <i class="ph ph-calendar-plus text-3xl"></i>
+            </div>
+            <h3 class="font-semibold text-lg">Create Event</h3>
+            <p class="text-blue-100 text-sm mt-1">Add new event</p>
+        </button>
+        
+        <button class="bg-green-600 hover:bg-green-700 text-white p-6 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
+            <div class="flex items-center justify-center mb-3">
+                <i class="ph ph-users text-3xl"></i>
+            </div>
+            <h3 class="font-semibold text-lg">View Registrations</h3>
+            <p class="text-green-100 text-sm mt-1">Track attendees</p>
+        </button>
+        
+        <button class="bg-purple-600 hover:bg-purple-700 text-white p-6 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
+            <div class="flex items-center justify-center mb-3">
+                <i class="ph ph-qr-code text-3xl"></i>
+            </div>
+            <h3 class="font-semibold text-lg">Attendance QR</h3>
+            <p class="text-purple-100 text-sm mt-1">Generate QR codes</p>
+        </button>
+        
+        <button class="bg-orange-600 hover:bg-orange-700 text-white p-6 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
+            <div class="flex items-center justify-center mb-3">
+                <i class="ph ph-certificate text-3xl"></i>
+            </div>
+            <h3 class="font-semibold text-lg">Generate Certificates</h3>
+            <p class="text-orange-100 text-sm mt-1">Create certificates</p>
+        </button>
+    </div>
+
+    <!-- Create New Event Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Create New Event</h2>
+        
+        <form action="/create_event" method="POST" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Event Title *
+                    </label>
+                    <input type="text" id="title" name="title" required
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="Enter event title">
+                </div>
+                
+                <div>
+                    <label for="tagline" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Tagline *
+                    </label>
+                    <input type="text" id="tagline" name="tagline" required
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="Enter event tagline">
+                </div>
+                
+                <div>
+                    <label for="date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Event Date *
+                    </label>
+                    <input type="date" id="date" name="date" required
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="org" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Organization *
+                    </label>
+                    <input type="text" id="org" name="org" required
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="e.g., Codex, AI Club">
+                </div>
+                
+                <div>
+                    <label for="cat" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Category *
+                    </label>
+                    <select id="cat" name="cat" required
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option value="">Select category</option>
+                        <option value="Tech">Tech</option>
+                        <option value="Fest">Fest</option>
+                        <option value="Workshop">Workshop</option>
+                        <option value="Cultural">Cultural</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Academic">Academic</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="img" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Image URL
+                    </label>
+                    <input type="url" id="img" name="img"
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="https://example.com/image.jpg">
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-lg">
+                    <i class="ph ph-plus mr-2"></i>
+                    Create Event
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- My Created Events -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">My Created Events</h2>
+        
+        {% if events %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for event in events %}
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                    {% if event.img %}
+                    <div class="aspect-w-16 aspect-h-9 mb-4">
+                        <img src="{{ event.img }}" alt="{{ event.title }}" 
+                             class="w-full h-32 object-cover rounded-lg">
+                    </div>
+                    {% endif %}
+                    
+                    <div class="space-y-2">
+                        <h3 class="font-semibold text-gray-900 dark:text-white text-lg">{{ event.title }}</h3>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm">{{ event.tagline }}</p>
+                        
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
+                                {{ event.cat }}
+                            </span>
+                            <span class="text-gray-500 dark:text-gray-400">{{ event.date }}</span>
+                        </div>
+                        
+                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                            <i class="ph ph-buildings mr-1"></i>
+                            {{ event.org }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <i class="ph ph-calendar-x text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No events created yet</h3>
+                <p class="text-gray-600 dark:text-gray-300">Create your first event using the form above!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
