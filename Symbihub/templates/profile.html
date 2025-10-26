@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - SymbiHub{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">My Profile</h1>
+        <p class="text-gray-600 dark:text-gray-400">Manage your account and view your activity</p>
+    </div>
+
+    <!-- Profile Information -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Profile Card -->
+        <div class="lg:col-span-1">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <!-- Profile Image -->
+                <div class="text-center mb-6">
+                    {% if user.profile_image %}
+                    <img src="{{ user.profile_image }}" alt="{{ user.name }}" 
+                         class="w-24 h-24 rounded-full mx-auto mb-4 object-cover">
+                    {% else %}
+                    <div class="w-24 h-24 rounded-full mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <i class="ph ph-user text-3xl text-white"></i>
+                    </div>
+                    {% endif %}
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">{{ user.name }}</h2>
+                    <p class="text-gray-600 dark:text-gray-400">{{ user.bio or 'No bio available' }}</p>
+                </div>
+
+                <!-- Profile Details -->
+                <div class="space-y-4">
+                    {% if user.college_id %}
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <i class="ph ph-identification-card mr-3"></i>
+                        <span>{{ user.college_id }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <i class="ph ph-envelope mr-3"></i>
+                        <span>{{ user.email }}</span>
+                    </div>
+                    
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <i class="ph ph-user mr-3"></i>
+                        <span>@{{ user.username }}</span>
+                    </div>
+                    
+                    {% if user.interests %}
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Interests</h4>
+                        <div class="flex flex-wrap gap-2">
+                            {% for interest in user.interests.split(',') %}
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full dark:bg-blue-900 dark:text-blue-200">
+                                {{ interest.strip() }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-6 space-y-2">
+                    <button onclick="editProfile()" 
+                            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                        <i class="ph ph-pencil mr-2"></i>
+                        Edit Profile
+                    </button>
+                    <a href="{{ url_for('logout') }}" 
+                       class="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors text-center block">
+                        <i class="ph ph-sign-out mr-2"></i>
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics and Activity -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Statistics -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Your Statistics</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ user.xp or 0 }}</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">XP Points</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ user.level or 1 }}</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Level</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ stats.events_attended or 0 }}</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Events Attended</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ stats.events_organized or 0 }}</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Events Organized</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Clubs -->
+            {% if user_clubs %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">My Clubs</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for club in user_clubs %}
+                    <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <i class="ph ph-users text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900 dark:text-white">{{ club.name }}</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">{{ club.role.title() }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Achievements -->
+            {% if user.achievements %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Achievements</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for achievement in user.achievements.split(',') %}
+                    <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full dark:bg-yellow-900 dark:text-yellow-200">
+                        <i class="ph ph-trophy mr-1"></i>
+                        {{ achievement.strip() }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recent Activity -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <i class="ph ph-calendar-check text-green-600 dark:text-green-400 mr-3"></i>
+                        <span>Joined {{ stats.events_attended or 0 }} events</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <i class="ph ph-calendar-plus text-blue-600 dark:text-blue-400 mr-3"></i>
+                        <span>Organized {{ stats.events_organized or 0 }} events</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <i class="ph ph-clock text-purple-600 dark:text-purple-400 mr-3"></i>
+                        <span>{{ user.volunteer_hours or 0 }} volunteer hours</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div id="editProfileModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Profile</h3>
+                <button onclick="closeEditProfile()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="ph ph-x text-xl"></i>
+                </button>
+            </div>
+            
+            <form method="POST" action="{{ url_for('update_profile') }}" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Full Name
+                    </label>
+                    <input type="text" id="name" name="name" value="{{ user.name }}"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label for="bio" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Bio
+                    </label>
+                    <textarea id="bio" name="bio" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                              placeholder="Tell us about yourself...">{{ user.bio or '' }}</textarea>
+                </div>
+                
+                <div>
+                    <label for="interests" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Interests (comma-separated)
+                    </label>
+                    <input type="text" id="interests" name="interests" value="{{ user.interests or '' }}"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                           placeholder="AI/ML, Programming, Robotics">
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeEditProfile()" 
+                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editProfile() {
+    document.getElementById('editProfileModal').classList.remove('hidden');
+}
+
+function closeEditProfile() {
+    document.getElementById('editProfileModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('editProfileModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeEditProfile();
+    }
+});
+</script>
+{% endblock %}
