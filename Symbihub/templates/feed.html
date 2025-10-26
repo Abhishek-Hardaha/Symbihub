@@ -20,7 +20,7 @@
     <!-- Create Post -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Share something with the community</h2>
-        <form id="create-post-form" action="/create_post" method="POST">
+        <form id="create-post-form" action="/create_post" method="POST" enctype="multipart/form-data">
             <div class="flex items-start space-x-4">
                 <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                     <i class="ph ph-user text-white"></i>
@@ -31,9 +31,11 @@
                               rows="3" required></textarea>
                     <div class="flex justify-between items-center mt-4">
                         <div class="flex items-center space-x-4">
-                            <button type="button" class="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400">
-                                <i class="ph ph-image text-xl"></i>
-                            </button>
+                            <label class="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer flex items-center">
+                                <i class="ph ph-image text-xl mr-2"></i>
+                                <input type="file" name="post_image" accept="image/*" class="hidden" />
+                                <span class="text-sm">Add image</span>
+                            </label>
                             <button type="button" class="text-gray-500 hover:text-green-600 dark:hover:text-green-400">
                                 <i class="ph ph-smiley text-xl"></i>
                             </button>
@@ -61,6 +63,11 @@
                             <span class="text-sm text-gray-500 dark:text-gray-400">2 hours ago</span>
                         </div>
                         <p class="text-gray-700 dark:text-gray-300 mb-4">{{ post.post }}</p>
+                        {% if post.post_image %}
+                        <div class="mb-4">
+                            <img src="{{ post.post_image }}" alt="Post image" class="w-full max-h-96 object-cover rounded-lg" />
+                        </div>
+                        {% endif %}
                         
                         <div class="flex items-center space-x-6">
                             <form action="/like_post/{{ post.id }}" method="POST" class="inline">

@@ -13,18 +13,26 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from database import db
 import sqlite3
 from PIL import Image, ImageDraw, ImageFont
+from flask import abort, make_response
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-in-production'
 
 # Configuration for file uploads
-UPLOAD_FOLDER = 'static/uploads'
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Create upload directory if it doesn't exist
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Optional WeasyPrint for HTML->PDF certificate generation
+try:
+    from weasyprint import HTML
+    HAVE_WEASYPRINT = True
+except Exception:
+    HAVE_WEASYPRINT = False
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -225,6 +233,102 @@ def dashboard():
     conn.close()
     
     return render_template('dashboard.html', events=events_mapped, posts=posts)
+
+
+# Admin panel route (simple demo: returns events, clubs and students)
+@app.route('/admin')
+def admin_panel():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT * FROM events ORDER BY event_date DESC')
+    events = cursor.fetchall()
+
+    cursor.execute('SELECT * FROM clubs ORDER BY name ASC')
+    clubs = cursor.fetchall()
+
+    cursor.execute('SELECT id, username, name FROM users ORDER BY username ASC')
+    students = cursor.fetchall()
+
+    conn.close()
+
+    return render_template('admin_panel.html', events=events, clubs=clubs, students=students)
+
+
+# Certificate preview endpoint: renders the provided certificate HTML template with registration data
+@app.route('/certificate/<int:reg_id>')
+def certificate_preview(reg_id):
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    
+    # Get registration details with user and event info
+    cursor.execute('''
+        SELECT er.*, u.name as participant_name, e.title as event_name, e.event_date,
+               strftime('%d %b %Y', e.event_date) as formatted_date
+        FROM event_registrations er
+        JOIN users u ON er.user_id = u.id
+        JOIN events e ON er.event_id = e.id
+        WHERE er.id = ?
+    ''', (reg_id,))
+    reg = cursor.fetchone()
+    conn.close()
+
+    if not reg:
+        abort(404)
+
+    # Prepare context for certificate template
+    context = {
+        'name': reg['participant_name'],
+        'event': reg['event_name'],
+        'date': reg['formatted_date']
+    }
+
+    # Render the certificate template
+    html = render_template('certificate.html', **context)
+    
+    # If download parameter is present, return as attachment
+    if request.args.get('download'):
+        response = make_response(html)
+        filename = f"certificate_{reg_id}.html"
+        response.headers['Content-Type'] = 'text/html'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        return response
+        
+    return html
+
+
+@app.route('/certificate/download/<int:reg_id>')
+def certificate_download(reg_id):
+    # Redirect to certificate preview with download parameter
+    return redirect(url_for('certificate_preview', reg_id=reg_id, download=1))
+
+    if not reg:
+        abort(404)
+
+    context = {
+        'name': reg['user_name'],
+        'event_title': reg['event_title'],
+        'date': reg.get('event_date'),
+        'ticket_type': reg.get('ticket_type'),
+        'qr_code': reg.get('qr_code')
+    }
+
+    rendered = render_template('certificate.html', **context)
+
+    # If WeasyPrint is available, render to PDF and return it
+    if HAVE_WEASYPRINT:
+        try:
+            pdf_bytes = HTML(string=rendered).write_pdf()
+            return send_file(BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=f'certificate_{reg_id}.pdf')
+        except Exception:
+            # Fall back to HTML download if PDF generation fails
+            pass
+
+    # Fallback: return HTML as attachment so user can print/save from browser
+    response = make_response(rendered)
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename=certificate_{reg_id}.html'
+    return response
 
 @app.route('/events')
 @login_required
@@ -458,7 +562,23 @@ def profile():
     except Exception:
         qr_b64 = None
     
-    return render_template('profile.html', user=user, stats=stats, user_clubs=user_clubs, symbi_qr_image=qr_b64)
+    # Demo badges (mock data)
+    badges = [
+        {'id': 1, 'name': 'First Event', 'desc': 'Created your first event', 'icon': 'ph-plus-circle', 'earned': True, 'date': '2024-09-12'},
+        {'id': 2, 'name': 'Volunteer 10h', 'desc': 'Completed 10 volunteer hours', 'icon': 'ph-hand-heart', 'earned': True, 'date': '2025-03-05'},
+        {'id': 3, 'name': 'Top Organizer', 'desc': 'Organized 5+ events', 'icon': 'ph-trophy', 'earned': False, 'date': None},
+        {'id': 4, 'name': 'Community Helper', 'desc': 'Helped in community drives', 'icon': 'ph-heart', 'earned': True, 'date': '2025-01-20'},
+    ]
+
+    # Demo leaderboard (mock data)
+    leaderboard = [
+        {'rank': 1, 'name': 'Anita Sharma', 'xp': 1250},
+        {'rank': 2, 'name': 'Rohan Gupta', 'xp': 980},
+        {'rank': 3, 'name': 'Sneha Iyer', 'xp': 860},
+        {'rank': 4, 'name': user['name'], 'xp': user['xp'] if 'xp' in user else 0},
+    ]
+
+    return render_template('profile.html', user=user, stats=stats, user_clubs=user_clubs, symbi_qr_image=qr_b64, badges=badges, leaderboard=leaderboard)
 
 @app.route('/event/<int:event_id>')
 @login_required
@@ -567,13 +687,38 @@ def create_event():
         
         # Handle cover image upload
         cover_image = None
+        # Handle cover image upload
+        cover_image = None # (or existing value for update route)
+        print(f"Checking for 'cover_image' in request.files: {'cover_image' in request.files}") # DEBUG
+
         if 'cover_image' in request.files:
             file = request.files['cover_image']
-            if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                filename = f"{uuid.uuid4()}_{filename}"
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                cover_image = f"/uploads/{filename}"
+            print(f"File object found: {file}") # DEBUG
+            print(f"File filename: {file.filename}") # DEBUG
+
+            if file and file.filename: # Check if a file was actually selected
+                is_allowed = allowed_file(file.filename)
+                print(f"Is file allowed? {is_allowed}") # DEBUG
+
+                if is_allowed:
+                    filename = secure_filename(file.filename)
+                    filename = f"{uuid.uuid4()}_{filename}"
+                    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    print(f"Attempting to save file to: {save_path}") # DEBUG
+                    try:
+                        file.save(save_path)
+                        cover_image = f"/uploads/{filename}"
+                        print(f"SUCCESS: File saved as {cover_image}") # DEBUG
+                    except Exception as e:
+                        print(f"ERROR saving file: {e}") # DEBUG - Catch potential errors
+                        flash(f"Error saving uploaded file: {e}", "error") # Show error to user
+                else:
+                    print(f"File type not allowed: {file.filename}") # DEBUG
+                    flash(f"File type not allowed: Please upload png, jpg, jpeg, gif, or webp.", "error")
+            else:
+                print("No file selected or file has no filename.") # DEBUG
+        else:
+            print("'cover_image' field not found in uploaded files.") # DEBUG
         
         conn = db.get_connection()
         cursor = conn.cursor()
@@ -770,6 +915,25 @@ def clubs():
     conn.close()
     return render_template('clubs.html', clubs=clubs)
 
+
+@app.route('/club/<int:club_id>')
+@login_required
+def club_profile(club_id):
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM clubs WHERE id = ?', (club_id,))
+    club = cursor.fetchone()
+    if not club:
+        flash('Club not found.', 'error')
+        conn.close()
+        return redirect(url_for('clubs'))
+
+    # Fetch upcoming events for this club
+    cursor.execute('SELECT * FROM events WHERE club_id = ? AND event_date >= date("now") ORDER BY event_date ASC', (club_id,))
+    events = cursor.fetchall()
+    conn.close()
+    return render_template('club_profile.html', club=club, events=events)
+
 @app.route('/feed')
 @login_required
 def feed():
@@ -790,6 +954,7 @@ def feed():
             'name': p['name'],
             'img': p['profile_image'] if p['profile_image'] else '/static/default_profile.png',
             'post': p['content'],
+            'post_image': p['image_url'] if 'image_url' in p.keys() and p['image_url'] else None,
             'likes': p['likes_count'] if p['likes_count'] is not None else 0,
             'created_at': p['created_at']
         })
@@ -808,10 +973,41 @@ def create_post():
 
     conn = db.get_connection()
     cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO posts (user_id, content)
-        VALUES (?, ?)
-    ''', (user['id'], content.strip()))
+    # Handle optional image upload for the post
+    post_image_url = None
+    if 'post_image' in request.files:
+        file = request.files['post_image']
+        if file and file.filename:
+            if allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filename = f"{uuid.uuid4()}_{filename}"
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                try:
+                    file.save(save_path)
+                    post_image_url = f"/uploads/{filename}"
+                except Exception as e:
+                    app.logger.exception('Failed to save uploaded post image')
+                    flash('Failed to save uploaded image.', 'error')
+            else:
+                flash('File type not allowed for post image.', 'error')
+
+    # Ensure compatibility with older DB schema that may not have image_url
+    try:
+        cursor.execute("PRAGMA table_info(posts)")
+        cols = [r[1] for r in cursor.fetchall()]
+    except Exception:
+        cols = []
+
+    if 'image_url' in cols:
+        cursor.execute('''
+            INSERT INTO posts (user_id, content, image_url)
+            VALUES (?, ?, ?)
+        ''', (user['id'], content.strip(), post_image_url))
+    else:
+        cursor.execute('''
+            INSERT INTO posts (user_id, content)
+            VALUES (?, ?)
+        ''', (user['id'], content.strip()))
     conn.commit()
     conn.close()
 
@@ -970,27 +1166,36 @@ def download_certificate(registration_id):
     if not reg:
         flash('Certificate not found or you do not have permission.', 'error')
         return redirect(url_for('my_events'))
-
-    # Create a simple certificate image
+    # For now, simply render the HTML certificate template in the browser
     try:
-        width, height = 1200, 800
-        img = Image.new('RGB', (width, height), color='white')
-        draw = ImageDraw.Draw(img)
-        title_font = ImageFont.load_default()
-        large_font = ImageFont.load_default()
-
-        draw.text((60, 80), 'Certificate of Participation', fill='black', font=large_font)
-        draw.text((60, 180), f"Presented to: {user['name']}", fill='black', font=title_font)
-        draw.text((60, 260), f"For participating in: {reg['event_title']}", fill='black', font=title_font)
-        draw.text((60, 340), f"Date: {reg.get('event_date')}", fill='black', font=title_font)
-
-        buf = BytesIO()
-        img.save(buf, format='PNG')
-        buf.seek(0)
-        return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f'certificate-{reg["id"]}.png')
+        # Provide variables expected by the certificate template
+        student_name = user['name'] if user and 'name' in user.keys() else (user['username'] if user and 'username' in user.keys() else 'Participant')
+        event_name = reg['event_title'] if reg and 'event_title' in reg.keys() else 'Event'
+        event_date = reg['event_date'] if reg and 'event_date' in reg.keys() else None
+        context = {
+            'student_name': student_name,
+            'event_name': event_name,
+            'event_date': event_date,
+            'organizer_name': None
+        }
+        return render_template('certificate.html', **context)
     except Exception as e:
-        flash('Could not generate certificate.', 'error')
-        return redirect(url_for('my_events'))
+        # Log the full exception to help debugging
+        app.logger.exception('Failed to render certificate for registration_id=%s', registration_id)
+        # Render certificate template with placeholders so user can still view a preview
+        try:
+            placeholder_ctx = {
+                'student_name': user['name'] if user and 'name' in user.keys() else 'Participant',
+                'event_name': reg['event_title'] if reg and 'event_title' in reg.keys() else 'Event Name',
+                'event_date': reg['event_date'] if reg and 'event_date' in reg.keys() else None,
+                'organizer_name': None,
+                'error': str(e)
+            }
+            flash('Rendered certificate with fallback (server logged error).', 'warning')
+            return render_template('certificate.html', **placeholder_ctx)
+        except Exception:
+            flash('Could not render certificate.', 'error')
+            return redirect(url_for('my_events'))
 
 
 # Organizer scanner page - simple UI that posts scanned QR codes to /api/verify_qr
@@ -1123,5 +1328,83 @@ def resume_builder():
 
     return render_template('resume_builder.html', attended=attended, certs=certs)
 
+@app.route('/generate_ai_resume', methods=['POST'])
+def generate_ai_resume():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+        
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    
+    # Get user's hosted events
+    cursor.execute('''
+        SELECT e.title, e.description, e.event_date, e.category
+        FROM events e
+        WHERE e.created_by = ?
+        ORDER BY e.event_date DESC
+    ''', (session['user_id'],))
+    hosted_events = cursor.fetchall()
+    
+    # Get user's attended events
+    cursor.execute('''
+        SELECT e.title, e.description, e.event_date, e.category,
+               er.ticket_type, er.registration_date, er.payment_status
+        FROM event_registrations er
+        JOIN events e ON er.event_id = e.id
+        WHERE er.user_id = ?
+        ORDER BY e.event_date DESC
+    ''', (session['user_id'],))
+    attended_events = cursor.fetchall()
+    
+    # Get user info
+    cursor.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],))
+    user = cursor.fetchone()
+    conn.close()
+
+    # Format experience data
+    experience = {
+        'name': user['name'],
+        'email': user['email'],
+        'bio': user['bio'],
+        'hosted_events': [dict(event) for event in hosted_events],
+        'attended_events': [dict(event) for event in attended_events]
+    }
+    
+    try:
+        import google.generativeai as genai
+        
+        # Configure the Gemini API
+        genai.configure(api_key = os.environ.get('GEMINI_API_KEY'))
+        model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        
+        prompt = f"""
+        Create a professional resume for {experience['name']} based on their SymbiHub activity:
+        
+        Bio: {experience['bio']}
+        
+        Event Organization Experience:
+    {', '.join(f"{event['title']} ({event.get('category','')})" for event in experience['hosted_events'])}
+        
+        Event Participation & Volunteering:
+    {', '.join(f"{event['title']} - {event.get('ticket_type','')} (registered on {event.get('registration_date')})" for event in experience['attended_events'])}
+        
+        Format it as a clean HTML document with professional styling.
+        Focus on highlighting leadership, organizational, and volunteer experience.
+        Include a skills section based on the types of events organized and attended.
+        """
+        
+        response = model.generate_content(prompt)
+        resume_html = response.text
+        
+        return jsonify({
+            'success': True,
+            'resume_html': resume_html
+        })
+        
+    except Exception as e:
+        print(f"Resume generation error: {str(e)}")
+        return jsonify({
+            'error': 'Failed to generate resume. Please try again.'
+        }), 500
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate of Participation - SymbiHub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Lato:wght@400;700&family=Dancing+Script:wght@700&display=swap');
+
+        body {
+            /* Subtle background pattern */
+            background-color: #f3e8ff; /* Light lavender background */
+            background-image: radial-gradient(#d8b4fe 0.5px, transparent 0.5px), radial-gradient(#d8b4fe 0.5px, #f3e8ff 0.5px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+
+        .certificate-frame {
+            width: 840px; /* Standard A4 landscape approx */
+            height: 595px;
+            background-color: #ffffff;
+            border: 1px solid #a855f7; /* Purple border */
+            padding: 1rem; /* Padding for inner border */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden; /* Hide overflowing decorative elements */
+        }
+
+        .certificate-border {
+            border: 5px solid #7e22ce; /* Darker Purple */
+            padding: 2.5rem;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* Decorative Corner Elements (SVG Example) */
+        .corner-decoration {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            fill: #c084fc; /* Lighter Purple */
+            opacity: 0.6;
+        }
+        .top-left { top: 0; left: 0; transform: rotate(0deg); }
+        .top-right { top: 0; right: 0; transform: rotate(90deg); }
+        .bottom-left { bottom: 0; left: 0; transform: rotate(-90deg); }
+        .bottom-right { bottom: 0; right: 0; transform: rotate(180deg); }
+
+
+        .institution-name {
+            font-family: 'Merriweather', serif;
+            color: #581c87; /* Deep Purple */
+        }
+
+        .certificate-title {
+            font-family: 'Dancing Script', cursive;
+            color: #a855f7; /* Purple */
+        }
+
+        .recipient-name {
+            font-family: 'Dancing Script', cursive;
+            color: #7e22ce; /* Darker Purple */
+            border-bottom: 2px solid #e9d5ff; /* Light Purple Underline */
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            display: inline-block; /* Keep underline tight */
+        }
+
+        .body-text {
+            font-family: 'Lato', sans-serif;
+            color: #374151; /* Gray-700 */
+        }
+
+        .event-name {
+            font-family: 'Lato', sans-serif;
+            font-weight: 700;
+            color: #581c87; /* Deep Purple */
+        }
+
+        .signature-line {
+            width: 220px;
+            border-top: 1px solid #6b7280; /* Gray-500 */
+            margin: 2px auto 5px auto; /* Adjust spacing */
+        }
+        .signature-name {
+            font-family: 'Lato', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #374151; /* Gray-700 */
+        }
+        .signature-title {
+            font-family: 'Lato', sans-serif;
+            font-size: 0.75rem;
+            color: #6b7280; /* Gray-500 */
+        }
+
+        /* Seal Placeholder */
+        .seal-placeholder {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: #facc15; /* Gold */
+            border: 3px solid #ca8a04; /* Darker Gold */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            bottom: 3.5rem; /* Adjust position */
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .seal-placeholder i {
+            color: #a16207; /* Darkest Gold */
+        }
+
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="certificate-frame">
+        <div class="certificate-border">
+
+            <!-- Optional Corner Decorations -->
+             <svg class="corner-decoration top-left" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 0 L100 0 L0 100 Z" />
+            </svg>
+            <svg class="corner-decoration top-right" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                 <path d="M0 0 L100 0 L0 100 Z" />
+            </svg>
+             <svg class="corner-decoration bottom-left" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                 <path d="M0 0 L100 0 L0 100 Z" />
+            </svg>
+             <svg class="corner-decoration bottom-right" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                 <path d="M0 0 L100 0 L0 100 Z" />
+            </svg>
+
+            <!-- Header -->
+            <div class="mb-2">
+                 <!-- Placeholder for University Logo if available -->
+                 <!-- <img src="path/to/symbiosis_logo.png" alt="Logo" class="h-16 mx-auto mb-2"> -->
+                <h1 class="institution-name text-2xl font-bold">
+                    Symbiosis Institute of Technology, Pune
+                </h1>
+                <p class="text-sm text-gray-500">(Constituent of Symbiosis International University)</p>
+            </div>
+
+            <!-- Title -->
+            <h2 class="certificate-title text-5xl mt-4 mb-2">
+                Certificate of Participation
+            </h2>
+
+            <p class="body-text text-lg mt-4 mb-2">This certificate is awarded to</p>
+
+            <!-- Recipient Name Placeholder -->
+            <p class="recipient-name text-4xl px-4">
+                {{ student_name or "Recipient's Full Name" }}
+            </p>
+
+            <p class="body-text text-lg mt-2 mb-2">
+                in recognition of their active participation in the event
+            </p>
+
+            <!-- Event Name Placeholder -->
+            <p class="event-name text-2xl mt-1 mb-2">
+                {{ event_name or "Name of the Event" }}
+            </p>
+
+            <p class="body-text text-sm text-gray-500 mb-6">
+                organized by SymbiHub on {{ event_date or "October 26, 2025" }}.
+            </p>
+
+             <!-- Seal Placeholder -->
+            <div class="seal-placeholder">
+                <i class="ph ph-seal-check text-4xl"></i>
+            </div>
+
+            <!-- Signatures -->
+            <div class="mt-auto w-full grid grid-cols-2 gap-12 pt-4">
+                 <div>
+                    <div class="signature-line"></div>
+                    <p class="signature-name">Dr. Ketan Kotecha</p>
+                    <p class="signature-title">Director, SIT Pune</p>
+                </div>
+                 <div>
+                    <div class="signature-line"></div>
+                    <p class="signature-name">{{ organizer_name or "Abhishek Hardaha" }}</p>
+                    <p class="signature-title">Event Organizer, SymbiHub</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

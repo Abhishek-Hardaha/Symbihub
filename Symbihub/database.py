@@ -147,6 +147,8 @@ class Database:
                     likes_count INTEGER DEFAULT 0,
                     comments_count INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    -- image_url was added later to support images in posts; keep FK after columns
+                    image_url TEXT,
                     FOREIGN KEY (user_id) REFERENCES users (id)
                 )
             ''')
@@ -265,6 +267,24 @@ class Database:
         # try to insert sample data only if users table is empty
         self.insert_sample_data()
 
+        # Ensure posts table has image_url column for backward compatibility with older DBs
+        try:
+            cursor.execute("PRAGMA table_info(posts)")
+            cols = [r[1] for r in cursor.fetchall()]
+            if 'image_url' not in cols:
+                try:
+                    cursor.execute('ALTER TABLE posts ADD COLUMN image_url TEXT')
+                except Exception as e:
+                    # Log the exception to stderr so developers can see migration issues during startup
+                    try:
+                        import sys
+                        sys.stderr.write(f"Warning: failed to ALTER posts add column image_url: {e}\n")
+                    except Exception:
+                        pass
+        except Exception:
+            # If any error occurs here, ignore and continue; table will still work without images
+            pass
+
     def insert_sample_data(self):
         with self.connection() as (conn, cursor):
             try:
@@ -284,6 +304,25 @@ class Database:
                     INSERT INTO users (username, email, password_hash, name, bio, college_id, profile_image, xp, level, events_attended, events_organized, volunteer_hours, interests, achievements)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', user)
+
+            # Seed official clubs if none exist
+            cursor.execute('SELECT COUNT(*) FROM clubs')
+            if cursor.fetchone()[0] == 0:
+                clubs_data = [
+                    ('AI Club', 'AI & ML enthusiasts working on projects and workshops.', 'ph-brain'),
+                    ('Foss Club', 'Free and Open Source Software community.', 'ph-git-branch'),
+                    ('Google Developers', 'GDSC chapter for learning and collaboration.', 'ph-google-logo'),
+                    ('Codex', 'Competitive programming and hackathons.', 'ph-code'),
+                    ('Mosaic', 'Design, arts and culture club.', 'ph-palette'),
+                    ('Symbiosis Music Society', 'Music and performing arts community.', 'ph-music-notes'),
+                    ('Sole to Soul', 'Dance and movement club.', 'ph-walk'),
+                    ('Antriksh Space Club', 'Aerospace and rocketry projects.', 'ph-rocket')
+                ]
+                for name, desc, icon in clubs_data:
+                    cursor.execute('''
+                        INSERT INTO clubs (name, description, icon, members_count, events_count, followers_count)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (name, desc, icon, 0, 0, 0))
 
 
 # module-level instance for backwards compatibility

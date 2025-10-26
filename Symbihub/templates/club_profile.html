@@ -37,7 +37,7 @@
             <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{{ club.members }}</h3>
             <p class="text-gray-600 dark:text-gray-300">Members</p>
         </div>
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-center">
             <div class="bg-green-100 dark:bg-green-900 p-3 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <i class="ph ph-calendar text-2xl text-green-600 dark:text-green-400"></i>
@@ -45,7 +45,7 @@
             <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{{ club.events_count }}</h3>
             <p class="text-gray-600 dark:text-gray-300">Events</p>
         </div>
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-center">
             <div class="bg-purple-100 dark:bg-purple-900 p-3 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <i class="ph ph-heart text-2xl text-purple-600 dark:text-purple-400"></i>
@@ -53,46 +53,13 @@
             <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{{ club.followers }}</h3>
             <p class="text-gray-600 dark:text-gray-300">Followers</p>
         </div>
-        
+
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-center">
             <div class="bg-orange-100 dark:bg-orange-900 p-3 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <i class="ph ph-star text-2xl text-orange-600 dark:text-orange-400"></i>
             </div>
             <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">4.8</h3>
             <p class="text-gray-600 dark:text-gray-300">Rating</p>
-        </div>
-    </div>
-
-    <!-- Club Actions -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-        <div class="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-            <div class="flex items-center space-x-4">
-                <form action="/join_club/{{ club.id }}" method="POST" class="inline">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                        <i class="ph ph-user-plus mr-2"></i>
-                        Join Club
-                    </button>
-                </form>
-                <form action="/follow_club/{{ club.id }}" method="POST" class="inline">
-                    <button type="submit" class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg font-medium transition-colors">
-                        <i class="ph ph-heart mr-2"></i>
-                        Follow
-                    </button>
-                </form>
-                <button class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg font-medium transition-colors">
-                    <i class="ph ph-share-network mr-2"></i>
-                    Share
-                </button>
-            </div>
-            
-            <div class="flex items-center space-x-2">
-                <span class="text-sm text-gray-600 dark:text-gray-300">Join as:</span>
-                <select class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                    <option value="member">Member</option>
-                    <option value="volunteer">Volunteer</option>
-                    <option value="collaborate">Collaborate</option>
-                </select>
-            </div>
         </div>
     </div>
 

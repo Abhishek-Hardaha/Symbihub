@@ -3,11 +3,46 @@
 {% block title %}Profile - SymbiHub{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
-    <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">My Profile</h1>
-        <p class="text-gray-600 dark:text-gray-400">Manage your account and view your activity</p>
+<!-- AI Resume Modal -->
+<div id="resumeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">AI Generated Resume</h3>
+                <button onclick="closeResumeModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+            <div id="resumeContent" class="prose dark:prose-invert max-w-none"></div>
+            <div class="mt-6 flex justify-end space-x-4">
+                <button onclick="downloadResume()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center">
+                    <i class="ph ph-download mr-2"></i> Download PDF
+                </button>
+                <button onclick="closeResumeModal()" class="px-4 py-2 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header with Quick Actions -->
+    <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">My Profile</h1>
+            <p class="text-gray-600 dark:text-gray-400">Manage your account and explore your journey</p>
+        </div>
+        <div class="mt-4 sm:mt-0 flex flex-wrap gap-4">
+            <button onclick="generateResume()" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 shadow-md hover:shadow-lg transition-all duration-200">
+                <i class="ph ph-file-text mr-2 text-lg"></i>
+                Generate AI Resume
+            </button>
+            <a href="#" onclick="openEditProfile(); return false;" class="inline-flex items-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+                <i class="ph ph-pencil mr-2"></i>
+                Edit Profile
+            </a>
+        </div>
     </div>
 
     <!-- Profile Information -->
@@ -150,6 +185,41 @@
             </div>
             {% endif %}
 
+            <!-- Badges & Leaderboard (demo) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Badges -->
+                <div class="md:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Badges & Rewards</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {% for badge in (badges or []) %}
+                        <div class="flex flex-col items-center p-3 rounded-lg {% if badge.earned %}bg-gradient-to-br from-yellow-100 to-yellow-50 dark:from-yellow-900 dark:to-yellow-800{% else %}bg-gray-50 dark:bg-gray-700{% endif %}">
+                            <div class="w-12 h-12 rounded-md mb-2 flex items-center justify-center {% if badge.earned %}bg-yellow-500 text-white{% else %}bg-gray-300 text-white{% endif %}">
+                                <i class="ph {{ badge.icon }}"></i>
+                            </div>
+                            <div class="text-xs text-center font-medium text-gray-900 dark:text-white">{{ badge.name }}</div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-300">{% if badge.earned %}Earned {{ badge.date }}{% else %}Locked{% endif %}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Leaderboard -->
+                <div class="md:col-span-1 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Leaderboard (Demo)</h3>
+                    <ol class="space-y-3">
+                        {% for user_rank in (leaderboard or []) %}
+                        <li class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">{{ user_rank.rank }}</div>
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ user_rank.name }}</div>
+                            </div>
+                            <div class="text-sm text-gray-600 dark:text-gray-300">{{ user_rank.xp }} XP</div>
+                        </li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+
             <!-- Recent Activity -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h3>
@@ -240,5 +310,105 @@ document.getElementById('editProfileModal').addEventListener('click', function(e
         closeEditProfile();
     }
 });
-</script>
-{% endblock %}
+
+    // AI Resume Generation Functions
+    function generateResume() {
+        // Show loading state
+        const modal = document.getElementById('resumeModal');
+        const content = document.getElementById('resumeContent');
+        modal.classList.remove('hidden');
+        content.innerHTML = `
+            <div class="flex items-center justify-center space-x-2 py-20">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span class="text-gray-600 dark:text-gray-400">Generating your resume...</span>
+            </div>
+        `;
+
+        // Make API call to generate resume
+        fetch('/generate_ai_resume', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(async response => {
+            const contentType = response.headers.get('content-type') || '';
+            // If JSON, parse it. Otherwise read as text (likely an error HTML page) and throw.
+            if (contentType.includes('application/json')) {
+                const data = await response.json();
+                if (!response.ok) {
+                    // Server returned JSON error object
+                    const err = data && data.error ? data.error : `Server error (${response.status})`;
+                    throw new Error(err);
+                }
+                return data;
+            } else {
+                const text = await response.text();
+                // Try to extract a useful message from HTML, otherwise include a short hint
+                let message = '';
+                try {
+                    // Attempt to find a meaningful line from the HTML
+                    const m = text.match(/<h1[^>]*>([^<]+)<\/h1>/i) || text.match(/<title[^>]*>([^<]+)<\/title>/i);
+                    message = m ? m[1] : text.substring(0, 300);
+                } catch (e) {
+                    message = 'Unexpected server response';
+                }
+                throw new Error(message + ' (non-JSON response)');
+            }
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            content.innerHTML = data.resume_html;
+        })
+        .catch(error => {
+            content.innerHTML = `
+                <div class="text-center py-10">
+                    <i class="ph ph-warning text-4xl text-yellow-500 mb-4"></i>
+                    <p class="text-gray-600 dark:text-gray-400">${error.message || 'Failed to generate resume. Please try again.'}</p>
+                    <button onclick="generateResume()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Try Again
+                    </button>
+                </div>
+            `;
+        });
+    }
+
+    function closeResumeModal() {
+        document.getElementById('resumeModal').classList.add('hidden');
+    }
+
+    function downloadResume() {
+        const content = document.getElementById('resumeContent').innerHTML;
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Resume</title>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 2rem; }
+                    h1, h2 { color: #2563eb; }
+                    .section { margin-bottom: 2rem; }
+                    .skills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+                    .skill { background: #e5e7eb; padding: 0.25rem 0.75rem; border-radius: 9999px; }
+                </style>
+            </head>
+            <body>${content}</body>
+            </html>
+        `;
+    
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'resume.html';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    }
+    </script>
+    {% endblock %}

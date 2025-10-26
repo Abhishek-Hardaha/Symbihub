@@ -59,7 +59,7 @@
                     </div>
                 </div>
                 
-                <p class="text-gray-600 dark:text-gray-300 mb-4">{{ club.desc }}</p>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">{{ club.description }}</p>
                 
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
@@ -72,9 +72,12 @@
                             5 events
                         </span>
                     </div>
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                        Join Club
-                    </button>
+                    <div class="flex items-center space-x-2">
+                        <a href="{{ url_for('club_profile', club_id=club.id) }}" class="bg-white text-blue-600 border border-blue-600 px-3 py-1 rounded-lg text-sm font-medium">View</a>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Join Club
+                        </button>
+                    </div>
                 </div>
             </div>
             {% endfor %}

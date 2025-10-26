@@ -203,10 +203,22 @@ document.getElementById('cover_image').addEventListener('change', function(e) {
             preview.src = e.target.result;
             preview.className = 'w-full h-48 object-cover rounded-md';
             
-            // Replace upload area with preview
+            // Insert preview into the upload area but keep the file input in DOM
             const uploadArea = document.querySelector('.border-dashed');
-            uploadArea.innerHTML = '';
-            uploadArea.appendChild(preview);
+            const contentDiv = uploadArea.querySelector('.space-y-1');
+            if (contentDiv) {
+                // hide the original upload UI but do not remove the input element
+                contentDiv.style.display = 'none';
+            }
+
+            // If a previous preview exists, replace it
+            let existingPreview = uploadArea.querySelector('.event-cover-preview');
+            if (existingPreview) {
+                existingPreview.replaceWith(preview);
+            } else {
+                preview.classList.add('event-cover-preview');
+                uploadArea.appendChild(preview);
+            }
         };
         reader.readAsDataURL(file);
     }
@@ -214,5 +226,14 @@ document.getElementById('cover_image').addEventListener('change', function(e) {
 
 // Set minimum date to today
 document.getElementById('event_date').min = new Date().toISOString().split('T')[0];
+
+// Debug: log file presence on submit (helps diagnose missing file submissions)
+const createForm = document.querySelector('form');
+if (createForm) {
+    createForm.addEventListener('submit', function(e) {
+        const input = document.getElementById('cover_image');
+        console.log('Submitting create_event form; cover_image files length =', input ? input.files.length : 'no-input');
+    });
+}
 </script>
 {% endblock %}
