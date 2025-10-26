@@ -192,20 +192,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Loading states for buttons
-    document.querySelectorAll('button[type="submit"]').forEach(button => {
-        button.addEventListener('click', function() {
-            const originalText = this.innerHTML;
-            this.innerHTML = '<i class="ph ph-spinner animate-spin mr-2"></i>Processing...';
-            this.disabled = true;
-            
-            // Re-enable after 2 seconds (in case of errors)
-            setTimeout(() => {
-                this.innerHTML = originalText;
-                this.disabled = false;
-            }, 2000);
-        });
+   // Loading states for buttons
+document.querySelectorAll('button[type="submit"]').forEach(button => {
+    button.addEventListener('click', function() {
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="ph ph-spinner animate-spin mr-2"></i>Processing...';
+        this.disabled = true;
+
+        // Submit the form
+        this.form.submit();
     });
+});
 
     // Dynamic content loading
     function loadContent(url, containerId) {
@@ -273,10 +270,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Service worker registration (for PWA functionality)
+    // Only attempt to register if the service worker file exists to avoid 404 logs
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-            .then(registration => console.log('SW registered'))
-            .catch(error => console.log('SW registration failed'));
+        fetch('/sw.js', { method: 'HEAD' })
+            .then(resp => {
+                if (resp.ok) {
+                    return navigator.serviceWorker.register('/sw.js')
+                        .then(registration => console.log('SW registered'))
+                        .catch(error => console.log('SW registration failed', error));
+                } else {
+                    console.log('No service worker file found (skipping registration)');
+                }
+            })
+            .catch(() => console.log('Could not check for service worker file; skipping registration'));
     }
 });
 

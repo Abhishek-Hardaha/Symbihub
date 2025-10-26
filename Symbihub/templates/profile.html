@@ -29,6 +29,18 @@
                     <p class="text-gray-600 dark:text-gray-400">{{ user.bio or 'No bio available' }}</p>
                 </div>
 
+                <!-- Symbi-Pass QR -->
+                {% if symbi_qr_image %}
+                <div class="text-center mb-4">
+                    <div class="inline-block bg-gray-100 dark:bg-gray-700 p-3 rounded-md">
+                        <img src="data:image/png;base64,{{ symbi_qr_image }}" alt="Symbi-Pass" class="w-36 h-36 mx-auto">
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('download_symbipass') }}" class="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Download Symbi-Pass</a>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Profile Details -->
                 <div class="space-y-4">
                     {% if user.college_id %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Attendance - SymbiHub{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4">Scan Attendance</h1>
+    <p class="text-gray-600 mb-4">Paste or scan a registration QR code below and verify attendance.</p>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">QR Code</label>
+        <input id="qrInput" type="text" placeholder="QR..." class="w-full px-3 py-2 border rounded-md mb-4 dark:bg-gray-700 dark:text-white">
+        <div class="flex space-x-2">
+            <button id="verifyBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md">Verify</button>
+            <button id="clearBtn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md">Clear</button>
+        </div>
+
+        <div id="result" class="mt-4"></div>
+    </div>
+</div>
+
+<script>
+document.getElementById('verifyBtn').addEventListener('click', async function(){
+    const qr = document.getElementById('qrInput').value.trim();
+    if(!qr){ alert('Enter a QR code'); return; }
+    const res = await fetch('/api/verify_qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qr_code: qr })
+    });
+    const data = await res.json();
+    const resultEl = document.getElementById('result');
+    if(res.ok){
+        resultEl.innerHTML = `<div class="p-3 bg-green-50 text-green-800 rounded">Marked attendance: ${data.registration_id}</div>`;
+    } else {
+        resultEl.innerHTML = `<div class="p-3 bg-red-50 text-red-800 rounded">Error: ${data.error || JSON.stringify(data)}</div>`;
+    }
+});
+
+document.getElementById('clearBtn').addEventListener('click', function(){
+    document.getElementById('qrInput').value = '';
+    document.getElementById('result').innerHTML = '';
+});
+</script>
+{% endblock %}

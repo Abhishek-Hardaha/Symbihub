@@ -253,6 +253,12 @@
                                 class="flex-1 bg-green-600 text-white py-2 px-3 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors text-sm">
                             Share
                         </button>
+                        {% if event.registration_id %}
+                        <a href="{{ url_for('download_certificate', registration_id=event.registration_id) }}" 
+                           class="flex-1 bg-indigo-600 text-white text-center py-2 px-3 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors text-sm">
+                            Get Certificate
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -341,9 +347,15 @@ function showTab(tabName) {
         selectedButton.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
     }
 
-    // Debug info
-    console.log('Created events count: ' + document.getElementById('created-tab').textContent.match(/\((\d+)\)/)[1]);
-    console.log('Registered events tab visibility: ' + !document.getElementById('registered-events').classList.contains('hidden'));
+    // Debug info (guard regex match in case tab label format changes)
+    try {
+        const createdText = document.getElementById('created-tab')?.textContent || '';
+        const createdMatch = createdText.match(/\((\d+)\)/);
+        console.log('Created events count: ' + (createdMatch ? createdMatch[1] : '0'));
+    } catch (e) {
+        console.log('Could not parse created events count');
+    }
+    console.log('Registered events tab visibility: ' + !document.getElementById('registered-events')?.classList.contains('hidden'));
 }
 
 // Initialize page

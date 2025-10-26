@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 from database import db
 import sqlite3
+from PIL import Image, ImageDraw, ImageFont
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-in-production'
@@ -206,6 +207,21 @@ def dashboard():
         ev['org'] = ev.get('organization')
         events_mapped.append(ev)
 
+    # If any event is missing an image, fetch latest photo per event in a single query
+    try:
+        missing_ids = [ev['id'] for ev in events_mapped if not ev.get('img')]
+        if missing_ids:
+            placeholders = ','.join(['?'] * len(missing_ids))
+            photo_query = f"SELECT p.event_id, p.image_url FROM event_photos p JOIN (SELECT event_id, MAX(uploaded_at) AS maxt FROM event_photos WHERE event_id IN ({placeholders}) GROUP BY event_id) m ON p.event_id = m.event_id AND p.uploaded_at = m.maxt"
+            cursor.execute(photo_query, missing_ids)
+            photo_rows = cursor.fetchall()
+            photo_map = {row['event_id']: row['image_url'] for row in photo_rows}
+            for ev in events_mapped:
+                if not ev.get('img') and ev['id'] in photo_map:
+                    ev['img'] = photo_map[ev['id']]
+    except Exception:
+        pass
+
     conn.close()
     
     return render_template('dashboard.html', events=events_mapped, posts=posts)
@@ -249,6 +265,21 @@ def events():
     cursor.execute("SELECT DISTINCT category FROM events WHERE category IS NOT NULL")
     categories = cursor.fetchall()
     
+    # If any event is missing a cover_image, fetch latest photo per event in a single query
+    try:
+        missing_ids = [ev['id'] for ev in events if not ev.get('cover_image')]
+        if missing_ids:
+            placeholders = ','.join(['?'] * len(missing_ids))
+            photo_query = f"SELECT p.event_id, p.image_url FROM event_photos p JOIN (SELECT event_id, MAX(uploaded_at) AS maxt FROM event_photos WHERE event_id IN ({placeholders}) GROUP BY event_id) m ON p.event_id = m.event_id AND p.uploaded_at = m.maxt"
+            cursor.execute(photo_query, missing_ids)
+            photo_rows = cursor.fetchall()
+            photo_map = {row['event_id']: row['image_url'] for row in photo_rows}
+            for ev in events:
+                if not ev.get('cover_image') and ev['id'] in photo_map:
+                    ev['cover_image'] = photo_map[ev['id']]
+    except Exception:
+        pass
+
     conn.close()
     
     return render_template('events.html', events=events, categories=categories)
@@ -273,7 +304,8 @@ def my_events():
     
     # Get events user is registered for
     cursor.execute('''
-        SELECT e.*, c.name as club_name, er.registration_date, er.payment_status
+        SELECT e.*, c.name as club_name,
+               er.id as registration_id, er.registration_date, er.payment_status, er.qr_code, er.ticket_type
         FROM events e
         LEFT JOIN clubs c ON e.club_id = c.id
         JOIN event_registrations er ON e.id = er.event_id
@@ -306,6 +338,22 @@ def my_events():
 
     created_events = normalize_events(created_events)
     registered_events = normalize_events(registered_events)
+
+    # If any created/registered events are missing cover_image, batch query latest photos
+    try:
+        all_events = created_events + registered_events
+        missing_ids = [ev['id'] for ev in all_events if not ev.get('cover_image')]
+        if missing_ids:
+            placeholders = ','.join(['?'] * len(missing_ids))
+            photo_query = f"SELECT p.event_id, p.image_url FROM event_photos p JOIN (SELECT event_id, MAX(uploaded_at) AS maxt FROM event_photos WHERE event_id IN ({placeholders}) GROUP BY event_id) m ON p.event_id = m.event_id AND p.uploaded_at = m.maxt"
+            cursor.execute(photo_query, missing_ids)
+            photo_rows = cursor.fetchall()
+            photo_map = {row['event_id']: row['image_url'] for row in photo_rows}
+            for ev in all_events:
+                if not ev.get('cover_image') and ev['id'] in photo_map:
+                    ev['cover_image'] = photo_map[ev['id']]
+    except Exception:
+        pass
 
     # Prepare stateless modal data
     created_event = None
@@ -397,8 +445,20 @@ def profile():
     user_clubs = cursor.fetchall()
     
     conn.close()
+    # Generate Symbi-Pass QR (base64) for profile display
+    try:
+        qr_payload = f"SYMBIPASS_USER_{user['id']}"
+        qr = qrcode.QRCode(version=1, box_size=6, border=4)
+        qr.add_data(qr_payload)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color='black', back_color='white')
+        buf = BytesIO()
+        qr_img.save(buf, format='PNG')
+        qr_b64 = base64.b64encode(buf.getvalue()).decode()
+    except Exception:
+        qr_b64 = None
     
-    return render_template('profile.html', user=user, stats=stats, user_clubs=user_clubs)
+    return render_template('profile.html', user=user, stats=stats, user_clubs=user_clubs, symbi_qr_image=qr_b64)
 
 @app.route('/event/<int:event_id>')
 @login_required
@@ -870,6 +930,198 @@ def clear_modal_data():
     session.pop('event_created', None)
     session.pop('registration_success', None)
     return '', 204  # No content response
+
+
+# Download Symbi-Pass QR as PNG
+@app.route('/download_symbipass')
+@login_required
+def download_symbipass():
+    user = get_current_user()
+    try:
+        qr_payload = f"SYMBIPASS_USER_{user['id']}"
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(qr_payload)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color='black', back_color='white')
+        buf = BytesIO()
+        qr_img.save(buf, format='PNG')
+        buf.seek(0)
+        return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f'symbi-pass-{user["id"]}.png')
+    except Exception as e:
+        flash('Could not generate Symbi-Pass.', 'error')
+        return redirect(url_for('profile'))
+
+
+# Download certificate for a registration (simple PNG certificate generated on the fly)
+@app.route('/download_certificate/<int:registration_id>')
+@login_required
+def download_certificate(registration_id):
+    user = get_current_user()
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT er.*, e.title as event_title, e.event_date
+        FROM event_registrations er
+        JOIN events e ON er.event_id = e.id
+        WHERE er.id = ? AND er.user_id = ?
+    ''', (registration_id, user['id']))
+    reg = cursor.fetchone()
+    conn.close()
+    if not reg:
+        flash('Certificate not found or you do not have permission.', 'error')
+        return redirect(url_for('my_events'))
+
+    # Create a simple certificate image
+    try:
+        width, height = 1200, 800
+        img = Image.new('RGB', (width, height), color='white')
+        draw = ImageDraw.Draw(img)
+        title_font = ImageFont.load_default()
+        large_font = ImageFont.load_default()
+
+        draw.text((60, 80), 'Certificate of Participation', fill='black', font=large_font)
+        draw.text((60, 180), f"Presented to: {user['name']}", fill='black', font=title_font)
+        draw.text((60, 260), f"For participating in: {reg['event_title']}", fill='black', font=title_font)
+        draw.text((60, 340), f"Date: {reg.get('event_date')}", fill='black', font=title_font)
+
+        buf = BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f'certificate-{reg["id"]}.png')
+    except Exception as e:
+        flash('Could not generate certificate.', 'error')
+        return redirect(url_for('my_events'))
+
+
+# Organizer scanner page - simple UI that posts scanned QR codes to /api/verify_qr
+@app.route('/organizer/scan')
+@login_required
+def organizer_scan():
+    # You might want to add an organizer-only check here (e.g., role)
+    return render_template('scanner.html')
+
+
+@app.route('/api/verify_qr', methods=['POST'])
+@login_required
+def api_verify_qr():
+    data = request.get_json() or {}
+    qr_code = data.get('qr_code')
+    if not qr_code:
+        return jsonify({'error': 'No QR provided'}), 400
+
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    # Find registration by qr_code
+    cursor.execute('SELECT * FROM event_registrations WHERE qr_code = ?', (qr_code,))
+    reg = cursor.fetchone()
+    if not reg:
+        conn.close()
+        return jsonify({'error': 'Registration not found'}), 404
+
+    # Check attendance table and insert if not present
+    cursor.execute('SELECT * FROM attendance WHERE event_id = ? AND user_id = ?', (reg['event_id'], reg['user_id']))
+    attendance = cursor.fetchone()
+    if attendance:
+        conn.close()
+        return jsonify({'status': 'already_marked', 'registration_id': reg['id']})
+
+    # Insert attendance
+    try:
+        cursor.execute('INSERT INTO attendance (event_id, user_id, scanned_at) VALUES (?, ?, CURRENT_TIMESTAMP)', (reg['event_id'], reg['user_id']))
+    except Exception:
+        # If attendance table doesn't exist, attempt to create it (best-effort)
+        try:
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS attendance (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_id INTEGER,
+                    user_id INTEGER,
+                    scanned_at TEXT
+                )
+            ''')
+            cursor.execute('INSERT INTO attendance (event_id, user_id, scanned_at) VALUES (?, ?, CURRENT_TIMESTAMP)', (reg['event_id'], reg['user_id']))
+        except Exception:
+            conn.rollback()
+            conn.close()
+            return jsonify({'error': 'Could not record attendance'}), 500
+
+    # Award XP to attendee
+    try:
+        cursor.execute('SELECT xp FROM users WHERE id = ?', (reg['user_id'],))
+        row = cursor.fetchone()
+        current_xp = row['xp'] or 0
+        cursor.execute('UPDATE users SET xp = ? WHERE id = ?', (current_xp + 10, reg['user_id']))
+    except Exception:
+        # continue even if XP update fails
+        pass
+
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'marked', 'registration_id': reg['id']})
+
+
+@app.route('/leaderboard')
+@login_required
+def leaderboard():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, username, name, xp FROM users ORDER BY xp DESC LIMIT 50')
+    rows = cursor.fetchall()
+    # Build leaderboard entries with rank and placeholders for events_attended/badges
+    leaderboard = []
+    for idx, r in enumerate(rows, start=1):
+        leaderboard.append({
+            'rank': idx,
+            'id': r['id'],
+            'username': r['username'],
+            'name': r['name'],
+            'xp': r['xp'] or 0,
+            'events_attended': 0,
+            'badges': 0
+        })
+    conn.close()
+    return render_template('leaderboard.html', leaderboard=leaderboard)
+
+
+@app.route('/resume_builder', methods=['GET', 'POST'])
+@login_required
+def resume_builder():
+    user = get_current_user()
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    # Get attended events
+    cursor.execute('''
+        SELECT e.title, e.event_date, e.venue
+        FROM events e
+        JOIN event_registrations er ON e.id = er.event_id
+        WHERE er.user_id = ?
+        ORDER BY e.event_date DESC
+    ''', (user['id'],))
+    attended = cursor.fetchall()
+
+    # Get certificates (if any)
+    cursor.execute('SELECT * FROM certificates WHERE user_id = ?', (user['id'],))
+    certs = cursor.fetchall()
+    conn.close()
+
+    if request.method == 'POST':
+        # Basic resume bullet generation from events + certificates
+        bullets = []
+        for e in attended:
+            date_str = e['event_date'] or ''
+            bullets.append(f"Attended '{e['title']}' on {date_str} at {e.get('venue','N/A')}")
+        for c in certs:
+            bullets.append(f"Received certificate: {c.get('title') or c.get('name','Certificate')}")
+
+        resume_text = f"Resume for {user['name']}\n\n" + "\n".join([f"- {b}" for b in bullets])
+
+        # Return plain text file for download
+        buf = BytesIO()
+        buf.write(resume_text.encode('utf-8'))
+        buf.seek(0)
+        return send_file(buf, as_attachment=True, download_name=f"resume-{user['id']}.txt", mimetype='text/plain')
+
+    return render_template('resume_builder.html', attended=attended, certs=certs)
 
 if __name__ == '__main__':
     app.run(debug=True)
